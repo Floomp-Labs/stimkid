@@ -2,7 +2,9 @@
 
 An interactive, animated 3D geometric visualization with cyberpunk aesthetics.
 
-![Cyberpunk Shape Preview](https://placeholder-image.com/cyberpunk-shape.png)
+[Cyberpunk Shape Preview] 
+
+[stimkid.netlify.app](https://stimkid.netlify.app/)
 
 ## Features
 
