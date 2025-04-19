@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="apple-mobile-web-app-title" content="StimVerse">
+  <meta name="apple-mobile-web-app-orientations" content="portrait">
+  <meta name="theme-color" content="#000000">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="apple-touch-startup-image" href="splash.png">
+  <script>
+    // iOS loading fixes
+    window.addEventListener(load, function() {
+      // Force layout recalculation
+      document.body.style.display = none;
+      document.body.offsetHeight;
+      document.body.style.display = ;
+      
+      // Fix for iOS Safari 100vh issue
+      function setAppHeight() {
+        const doc = document.documentElement;
+        doc.style.setProperty(--app-height, `${window.innerHeight}px`);
+      }
+      window.addEventListener(resize, setAppHeight);
+      setAppHeight();
+      
+      // Fix for iOS Safari canvas rendering
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+        const canvas = document.querySelector(canvas);
+        if (canvas) {
+          const context = canvas.getContext(webgl) || canvas.getContext(2d);
+          if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(canvas, 0, 0);
+          }
+        }
+      }
+    });
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui">
+  <title>StimVerse - Interactive Neural</title>
+  <script>
+    // iOS Safari specific fixes
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+      // Prevent double-tap zoom
+      document.addEventListener(touchstart, function(e) {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      // Prevent elastic scrolling
+      document.body.addEventListener(touchmove, function(e) {
+        if (e.target.tagName === CANVAS) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      // Fix for iOS Safari canvas rendering
+      function fixCanvasRendering() {
+        const canvas = document.querySelector(canvas);
+        if (canvas) {
+          const context = canvas.getContext(webgl) || canvas.getContext(2d);
+          if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(canvas, 0, 0);
+          }
+        }
+      }
+      
+      // Fix for iOS Safari orientation changes
+      window.addEventListener(orientationchange, function() {
+        setTimeout(function() {
+          fixCanvasRendering();
+          setAppHeight();
+        }, 100);
+      });
+    }
+  </script>
+  <script src="sound-toggle.js"></script>
+  <link rel="stylesheet" href="back-button.css">
+  <style>
+    :root {
+      --safe-area-inset-top: env(safe-area-inset-top);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom);
+      --safe-area-inset-left: env(safe-area-inset-left);
+      --safe-area-inset-right: env(safe-area-inset-right);
+    }
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -webkit-text-size-adjust: 100%;
+      -webkit-overflow-scrolling: touch;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      perspective: 1000;
+    }
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: fixed;
+      -webkit-overflow-scrolling: touch;
+    }
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-transform: translate3d(0,0,0);
+      transform: translate3d(0,0,0);
+    }
+    @supports (-webkit-touch-callout: none) {
+      body {
+        min-height: -webkit-fill-available;
+      }
+    }
+    canvas {
+      touch-action: none;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      perspective: 1000;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    :root {
+      --neon-blue: #00ffff;
+      --darker-bg: #0a0a12;
+      --neon-white: #ffffff;
+    }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #0a0a12;
+      cursor: none;
+      font-family: 'Courier New', monospace;
+      touch-action: none; /* Prevent default touch actions */
+      user-select: none; /* Prevent text selection while dragging */
+    }
+    
+    #canvas-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    .cursor {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,0,204,0.8) 0%, rgba(0,204,255,0) 70%);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 999;
+      box-shadow: 0 0 15px 5px rgba(0, 255, 255, 0.3);
+    }
+    
+    .cursor::after {
+      content: "";
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #00ffff;
+      top: 5px;
+      left: 5px;
+    }
+    
+    .info {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: #00ffff;
+      font-size: 12px;
+      z-index: 100;
+      opacity: 0.7;
+      text-shadow: 0 0 5px #ff00cc;
+    }
+  </style>
+</head>
+<body>
+  <a href="index.html" class="back-button">BACK</a>
+  <div id="canvas-container">
+    <canvas id="scene"></canvas>
+    <div class="cursor"></div>
+    <div class="info">TOUCH OR CLICK TO ACTIVATE NEURAL NETWORK | TOUCH AND HOLD TO CREATE NEW NODES</div>
+  </div>
+
+  <script>
+    // Initialize variables
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d');
+    const cursor = document.querySelector('.cursor');
+    
+    // Set canvas dimensions
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Mouse position
+    let mouse = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      isPressed: false,
+      pressTimer: null
+    };
+    
+    // Neural Network properties
+    const neuralNetwork = {
+      nodes: [],
+      connections: [],
+      nodeCount: Math.min(Math.max(30, Math.floor(window.innerWidth * window.innerHeight / 20000)), 150), // Responsive node count
+      connectionDistance: 150,
+      colorSchemes: [
+        ['#ff00cc', '#00ffcc', '#ff00ff', '#00ccff'], // Default cyberpunk
+        ['#ff6600', '#ffcc00', '#ff3300', '#ff9900'], // Orange fire
+        ['#00ff66', '#33ff99', '#00cc33', '#66ffcc'], // Matrix green
+        ['#9900ff', '#cc66ff', '#6600cc', '#cc33ff']  // Neon purple
+      ],
+      currentColorScheme: 0,
+      pulseFrequency: 0.05, // How often to send pulses (probability per frame)
+      activeNodes: new Set(), // Track which nodes are currently activated
+      
+      init: function() {
+        // Create the nodes
+        for (let i = 0; i < this.nodeCount; i++) {
+          this.nodes.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: Math.random() * 2 + 2,
+            vx: (Math.random() - 0.5) * 3, // Increased initial velocity
+            vy: (Math.random() - 0.5) * 3, // Increased initial velocity 
+            color: this.getRandomColor(),
+            activation: 0, // 0 to 1, how "active" the node is
+            activationDecay: 0.02 // How quickly activation decreases per frame
+          });
+        }
+        
+        // Create connections between nearby nodes
+        for (let i = 0; i < this.nodes.length; i++) {
+          for (let j = i + 1; j < this.nodes.length; j++) {
+            const nodeA = this.nodes[i];
+            const nodeB = this.nodes[j];
+            
+            const distance = this.getDistance(nodeA, nodeB);
+            
+            if (distance < this.connectionDistance) {
+              this.connections.push({
+                from: i,
+                to: j,
+                strength: 1 - (distance / this.connectionDistance), // Stronger if closer
+                pulses: [], // Array of pulse objects moving along this connection
+                color: this.getRandomColor()
+              });
+            }
+          }
+        }
+      },
+      
+      getDistance: function(nodeA, nodeB) {
+        const dx = nodeA.x - nodeB.x;
+        const dy = nodeA.y - nodeB.y;
+        return Math.sqrt(dx * dx + dy * dy);
+      },
+      
+      getRandomColor: function() {
+        const colors = this.colorSchemes[this.currentColorScheme];
+        return colors[Math.floor(Math.random() * colors.length)];
+      },
+      
+      update: function() {
+        // Update node positions
+        for (let i = 0; i < this.nodes.length; i++) {
+          const node = this.nodes[i];
+          
+          // Move the node
+          node.x += node.vx;
+          node.y += node.vy;
+          
+          // Boundary checks
+          if (node.x < 0 || node.x > canvas.width) {
+            node.vx *= -1;
+          }
+          
+          if (node.y < 0 || node.y > canvas.height) {
+            node.vy *= -1;
+          }
+          
+          // Slightly randomize velocity for organic movement (increased randomness)
+          node.vx += (Math.random() - 0.5) * 0.4;
+          node.vy += (Math.random() - 0.5) * 0.4;
+          
+          // Limit velocity, but allow faster movement
+          const maxVel = 4.0; // Increased maximum velocity
+          const vel = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
+          if (vel > maxVel) {
+            node.vx = (node.vx / vel) * maxVel;
+            node.vy = (node.vy / vel) * maxVel;
+          }
+          
+          // Update activation level (decay over time)
+          if (node.activation > 0) {
+            node.activation = Math.max(0, node.activation - node.activationDecay);
+            
+            // If node was active and activation drops to 0, remove from active set
+            if (node.activation === 0 && this.activeNodes.has(i)) {
+              this.activeNodes.delete(i);
+            }
+          }
+        }
+        
+        // Update connections
+        for (let i = 0; i < this.connections.length; i++) {
+          const conn = this.connections[i];
+          const nodeA = this.nodes[conn.from];
+          const nodeB = this.nodes[conn.to];
+          
+          // Update distance and strength
+          const distance = this.getDistance(nodeA, nodeB);
+          conn.strength = 1 - (distance / this.connectionDistance);
+          
+          // Update pulses on this connection
+          for (let j = 0; j < conn.pulses.length; j++) {
+            const pulse = conn.pulses[j];
+            pulse.progress += 0.05; // Faster pulse movement along connections
+            
+            // Remove pulse when it reaches the end
+            if (pulse.progress >= 1) {
+              conn.pulses.splice(j, 1);
+              j--;
+              
+              // Activate the destination node
+              this.nodes[conn.to].activation = 1;
+              this.activeNodes.add(conn.to);
+              
+              // Possibly send new pulses from the destination node
+              this.sendPulsesFrom(conn.to);
+            }
+          }
+        }
+        
+        // Randomly activate nodes and send pulses
+        if (Math.random() < this.pulseFrequency) {
+          const randomNode = Math.floor(Math.random() * this.nodes.length);
+          this.activateNode(randomNode);
+        }
+      },
+      
+      draw: function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Set shadow for glow effect
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = this.getRandomColor();
+        
+        // Draw connections first (so they appear behind nodes)
+        for (let i = 0; i < this.connections.length; i++) {
+          const conn = this.connections[i];
+          const nodeA = this.nodes[conn.from];
+          const nodeB = this.nodes[conn.to];
+          
+          // Only draw if connection is valid (within distance)
+          if (conn.strength > 0) {
+            // Draw the connection line with opacity based on strength
+            ctx.beginPath();
+            ctx.moveTo(nodeA.x, nodeA.y);
+            ctx.lineTo(nodeB.x, nodeB.y);
+            ctx.strokeStyle = `rgba(100, 100, 100, ${conn.strength * 0.2})`;
+            ctx.lineWidth = conn.strength * 1.5;
+            ctx.stroke();
+            
+            // Draw pulses on this connection
+            for (let j = 0; j < conn.pulses.length; j++) {
+              const pulse = conn.pulses[j];
+              
+              // Calculate position along the connection
+              const x = nodeA.x + (nodeB.x - nodeA.x) * pulse.progress;
+              const y = nodeA.y + (nodeB.y - nodeA.y) * pulse.progress;
+              
+              // Draw pulse
+              ctx.beginPath();
+              ctx.arc(x, y, 3, 0, Math.PI * 2);
+              ctx.fillStyle = pulse.color;
+              ctx.shadowColor = pulse.color;
+              ctx.fill();
+            }
+          }
+        }
+        
+        // Draw nodes
+        for (let i = 0; i < this.nodes.length; i++) {
+          const node = this.nodes[i];
+          
+          // Calculate radius based on activation
+          const displayRadius = node.radius * (1 + node.activation * 2);
+          
+          // Draw node
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, displayRadius, 0, Math.PI * 2);
+          
+          // Color based on activation level
+          ctx.shadowColor = node.color;
+          
+          if (node.activation > 0) {
+            ctx.fillStyle = node.color;
+          } else {
+            ctx.fillStyle = 'rgba(150, 150, 150, 0.5)';
+          }
+          
+          ctx.fill();
+        }
+        
+        // Draw scan lines for cyberpunk effect
+        this.drawScanLines();
+      },
+      
+      drawScanLines: function() {
+        ctx.shadowBlur = 0; // Disable shadow for scan lines
+        
+        for (let i = 0; i < canvas.height; i += 4) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+          ctx.fillRect(0, i, canvas.width, 1);
+        }
+      },
+      
+      changeColor: function() {
+        this.currentColorScheme = (this.currentColorScheme + 1) % this.colorSchemes.length;
+        
+        // Update all node and connection colors
+        for (let i = 0; i < this.nodes.length; i++) {
+          this.nodes[i].color = this.getRandomColor();
+        }
+        
+        for (let i = 0; i < this.connections.length; i++) {
+          this.connections[i].color = this.getRandomColor();
+        }
+        
+        // Trigger vibration if supported
+        if (navigator.vibrate) {
+          navigator.vibrate([50, 30, 50]);
+        }
+      },
+      
+      activateNode: function(nodeIndex) {
+        const node = this.nodes[nodeIndex];
+        node.activation = 1;
+        this.activeNodes.add(nodeIndex);
+        
+        // Send pulses from this node
+        this.sendPulsesFrom(nodeIndex);
+      },
+      
+      sendPulsesFrom: function(nodeIndex) {
+        // Find all connections from this node
+        for (let i = 0; i < this.connections.length; i++) {
+          const conn = this.connections[i];
+          
+          if (conn.from === nodeIndex) {
+            // Add a new pulse
+            conn.pulses.push({
+              progress: 0,
+              color: this.nodes[nodeIndex].color,
+              speed: 0.01 + Math.random() * 0.02
+            });
+          } else if (conn.to === nodeIndex) {
+            // Also send in reverse direction
+            conn.pulses.push({
+              progress: 0,
+              color: this.nodes[nodeIndex].color,
+              speed: 0.01 + Math.random() * 0.02
+            });
+          }
+        }
+      },
+      
+      addNodeAt: function(x, y) {
+        // Create a new node at the specified position
+        const newNodeIndex = this.nodes.length;
+        
+        this.nodes.push({
+          x: x,
+          y: y,
+          radius: Math.random() * 2 + 2,
+          vx: (Math.random() - 0.5) * 0.5,
+          vy: (Math.random() - 0.5) * 0.5,
+          color: this.getRandomColor(),
+          activation: 1, // Start activated
+          activationDecay: 0.02
+        });
+        
+        // Create connections to nearby nodes
+        for (let i = 0; i < newNodeIndex; i++) {
+          const otherNode = this.nodes[i];
+          const distance = Math.sqrt(
+            Math.pow(otherNode.x - x, 2) + 
+            Math.pow(otherNode.y - y, 2)
+          );
+          
+          if (distance < this.connectionDistance) {
+            this.connections.push({
+              from: i,
+              to: newNodeIndex,
+              strength: 1 - (distance / this.connectionDistance),
+              pulses: [],
+              color: this.getRandomColor()
+            });
+          }
+        }
+        
+        // Activate the new node
+        this.activateNode(newNodeIndex);
+        
+        // Trigger a small vibration
+        if (navigator.vibrate) {
+          navigator.vibrate(20);
+        }
+        
+        return newNodeIndex;
+      },
+      
+      activateNearbyNodes: function(x, y, radius = 50) {
+        let activated = false;
+        
+        // Find nodes near the given position
+        for (let i = 0; i < this.nodes.length; i++) {
+          const node = this.nodes[i];
+          const distance = Math.sqrt(
+            Math.pow(node.x - x, 2) + 
+            Math.pow(node.y - y, 2)
+          );
+          
+          if (distance < radius) {
+            this.activateNode(i);
+            activated = true;
+          }
+        }
+        
+        return activated;
+      },
+      
+      causeChainReaction: function(x, y) {
+        // First, try to activate nearby nodes
+        const activated = this.activateNearbyNodes(x, y);
+        
+        // If no nodes were activated, add a new node
+        if (!activated) {
+          this.addNodeAt(x, y);
+        }
+        
+        // Visual effect for the click
+        this.createPulseEffect(x, y);
+      },
+      
+      createPulseEffect: function(x, y) {
+        // Create an expanding circle effect
+        const maxRadius = 100;
+        let currentRadius = 0;
+        const expandSpeed = 2;
+        const color = this.getRandomColor();
+        
+        const expandPulse = () => {
+          ctx.beginPath();
+          ctx.arc(x, y, currentRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = 15;
+          ctx.stroke();
+          
+          currentRadius += expandSpeed;
+          
+          if (currentRadius < maxRadius) {
+            requestAnimationFrame(expandPulse);
+          }
+        };
+        
+        expandPulse();
+      }
+    };
+    
+    // Handle mouse movement
+    document.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      
+      // Update custom cursor position
+      cursor.style.left = `${e.clientX}px`;
+      cursor.style.top = `${e.clientY}px`;
+    });
+    
+    // Handle mouse down
+    document.addEventListener('mousedown', (e) => {
+      mouse.isPressed = true;
+      
+      // First click/tap immediately causes a reaction
+      neuralNetwork.causeChainReaction(e.clientX, e.clientY);
+      
+      // Change color on each click
+      neuralNetwork.changeColor();
+      
+      // Set up a timer to create nodes if hold is sustained
+      mouse.pressTimer = setTimeout(() => {
+        const createNodeInterval = setInterval(() => {
+          if (mouse.isPressed) {
+            neuralNetwork.addNodeAt(mouse.x, mouse.y);
+          } else {
+            clearInterval(createNodeInterval);
+          }
+        }, 300); // Create a new node every 300ms while holding
+      }, 500); // Start creating after holding for 500ms
+    });
+    
+    // Handle mouse up
+    document.addEventListener('mouseup', () => {
+      mouse.isPressed = false;
+      clearTimeout(mouse.pressTimer);
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+    
+    // Add touch support for mobile devices
+    document.addEventListener('touchmove', (e) => {
+      e.preventDefault(); // Prevent scrolling
+      
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        mouse.x = touch.clientX;
+        mouse.y = touch.clientY;
+        
+        // Update custom cursor position
+        cursor.style.left = `${touch.clientX}px`;
+        cursor.style.top = `${touch.clientY}px`;
+      }
+    }, { passive: false });
+    
+    document.addEventListener('touchstart', (e) => {
+      mouse.isPressed = true;
+      
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        
+        // Trigger chain reaction
+        neuralNetwork.causeChainReaction(touch.clientX, touch.clientY);
+        
+        // Change color scheme
+        neuralNetwork.changeColor();
+        
+        // Set up a timer to create nodes if hold is sustained
+        mouse.pressTimer = setTimeout(() => {
+          const createNodeInterval = setInterval(() => {
+            if (mouse.isPressed && e.touches.length > 0) {
+              const touch = e.touches[0];
+              neuralNetwork.addNodeAt(touch.clientX, touch.clientY);
+            } else {
+              clearInterval(createNodeInterval);
+            }
+          }, 300); // Create a new node every 300ms while holding
+        }, 500); // Start creating after holding for 500ms
+      }
+    });
+    
+    document.addEventListener('touchend', () => {
+      mouse.isPressed = false;
+      clearTimeout(mouse.pressTimer);
+    });
+    
+    // Animation loop
+    function animate() {
+      neuralNetwork.update();
+      neuralNetwork.draw();
+      requestAnimationFrame(animate);
+    }
+    
+    // Initialize and start animation
+    neuralNetwork.init();
+    animate();
+  </script>
+</body>
+</html>
+
+

@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<!-- saved from url=(0067)file:///Users/floomp.meme/Desktop/Floomp%20Labs/stimkid/sphere.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="apple-mobile-web-app-title" content="StimVerse">
+  <meta name="apple-mobile-web-app-orientations" content="portrait">
+  <meta name="theme-color" content="#000000">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="apple-touch-startup-image" href="splash.png">
+  <script>
+    // iOS loading fixes
+    window.addEventListener(load, function() {
+      // Force layout recalculation
+      document.body.style.display = none;
+      document.body.offsetHeight;
+      document.body.style.display = ;
+      
+      // Fix for iOS Safari 100vh issue
+      function setAppHeight() {
+        const doc = document.documentElement;
+        doc.style.setProperty(--app-height, `${window.innerHeight}px`);
+      }
+      window.addEventListener(resize, setAppHeight);
+      setAppHeight();
+      
+      // Fix for iOS Safari canvas rendering
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+        const canvas = document.querySelector(canvas);
+        if (canvas) {
+          const context = canvas.getContext(webgl) || canvas.getContext(2d);
+          if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(canvas, 0, 0);
+          }
+        }
+      }
+    });
+  </script>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui">
+  <title>3D Interactive Cyberpunk Monkey</title>
+  <script>
+    // iOS Safari specific fixes
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+      // Prevent double-tap zoom
+      document.addEventListener(touchstart, function(e) {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      // Prevent elastic scrolling
+      document.body.addEventListener(touchmove, function(e) {
+        if (e.target.tagName === CANVAS) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      // Fix for iOS Safari canvas rendering
+      function fixCanvasRendering() {
+        const canvas = document.querySelector(canvas);
+        if (canvas) {
+          const context = canvas.getContext(webgl) || canvas.getContext(2d);
+          if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(canvas, 0, 0);
+          }
+        }
+      }
+      
+      // Fix for iOS Safari orientation changes
+      window.addEventListener(orientationchange, function() {
+        setTimeout(function() {
+          fixCanvasRendering();
+          setAppHeight();
+        }, 100);
+      });
+    }
+  </script>
+  <script src="sound-toggle.js"></script>
+  <link rel="stylesheet" href="back-button.css">
+  <style>
+    :root {
+      --safe-area-inset-top: env(safe-area-inset-top);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom);
+      --safe-area-inset-left: env(safe-area-inset-left);
+      --safe-area-inset-right: env(safe-area-inset-right);
+    }
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -webkit-text-size-adjust: 100%;
+      -webkit-overflow-scrolling: touch;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      perspective: 1000;
+    }
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: fixed;
+      -webkit-overflow-scrolling: touch;
+    }
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-transform: translate3d(0,0,0);
+      transform: translate3d(0,0,0);
+    }
+    @supports (-webkit-touch-callout: none) {
+      body {
+        min-height: -webkit-fill-available;
+      }
+    }
+    canvas {
+      touch-action: none;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      perspective: 1000;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #0a0a12;
+      cursor: none;
+      font-family: 'Courier New', monospace;
+    }
+    
+    #canvas-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    .cursor {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,0,204,0.8) 0%, rgba(0,204,255,0) 70%);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 999;
+      box-shadow: 0 0 15px 5px rgba(0, 255, 255, 0.3);
+    }
+    
+    .cursor::after {
+      content: "";
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #00ffff;
+      top: 5px;
+      left: 5px;
+    }
+    
+    .info {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: #00ffff;
+      font-size: 12px;
+      z-index: 100;
+      opacity: 0.7;
+      text-shadow: 0 0 5px #ff00cc;
+    }
+  </style>
+</head>
+<body style="cursor: none;">
+  <a href="index.html" class="back-button">← BACK</a>
+  <div id="canvas-container">
+    <canvas id="scene" width="1472" height="849"></canvas>
+    <div class="cursor" style="left: 872px; top: 617px; transform: translate(-50%, -50%) scale(1); opacity: 1;"></div>
+    <div class="info">MOVE CURSOR TO INTERACT | DRAG MONKEY TO REPOSITION | CLICK OUTSIDE TO CHANGE COLOR</div>
+  </div>
+
+  <script>
+    // Initialize variables
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d');
+    const cursor = document.querySelector('.cursor');
+    
+    // Set canvas dimensions
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Dragging state
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    
+    // Shape properties
+    let shape = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      scale: 80, // Base scale for the monkey
+      velocityX: 2.5,
+      velocityY: 2.0,
+      rotationX: 0,
+      rotationY: 0,
+      rotationZ: 0,
+      pointSize: 2,
+      currentColorScheme: 0,
+      colorSchemes: [
+        ['#ff00cc', '#00ffcc', '#ff00ff', '#00ccff'], // Default cyberpunk
+        ['#ff6600', '#ffcc00', '#ff3300', '#ff9900'], // Orange fire
+        ['#00ff66', '#33ff99', '#00cc33', '#66ffcc'], // Matrix green
+        ['#9900ff', '#cc66ff', '#6600cc', '#cc33ff']  // Neon purple
+      ]
+    };
+    
+    // Mouse position
+    let mouse = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      influence: 0.08 // How much the mouse affects the shape
+    };
+
+    // Monkey model - simplified vertices and connections
+    const monkeyVertices = [
+      // Head - spherical base
+      {x: 0, y: 0, z: 0},          // 0: Center of head
+      
+      // Face 
+      {x: 0, y: -0.5, z: 0.8},     // 1: Nose tip
+      {x: 0, y: -0.2, z: 0.9},     // 2: Upper nose
+      {x: 0, y: 0.1, z: 0.95},     // 3: Between eyes
+      {x: -0.3, y: 0.1, z: 0.85},  // 4: Left eye
+      {x: 0.3, y: 0.1, z: 0.85},   // 5: Right eye
+      {x: -0.5, y: -0.3, z: 0.7},  // 6: Left cheek
+      {x: 0.5, y: -0.3, z: 0.7},   // 7: Right cheek
+      {x: 0, y: -0.7, z: 0.5},     // 8: Chin
+      
+      // Ears
+      {x: -0.7, y: 0.5, z: 0.2},   // 9: Left ear tip
+      {x: -0.5, y: 0.5, z: 0.4},   // 10: Left ear base
+      {x: 0.7, y: 0.5, z: 0.2},    // 11: Right ear tip
+      {x: 0.5, y: 0.5, z: 0.4},    // 12: Right ear base
+      
+      // Back of head
+      {x: 0, y: 0.7, z: 0},        // 13: Back of head
+      {x: 0, y: 0.4, z: -0.6},     // 14: Back crown
+      {x: 0, y: 0, z: -0.8},       // 15: Back center
+      
+      // Mouth
+      {x: -0.2, y: -0.6, z: 0.6},  // 16: Left mouth
+      {x: 0.2, y: -0.6, z: 0.6},   // 17: Right mouth
+      
+      // Additional features
+      {x: -0.15, y: -0.1, z: 0.9}, // 18: Left nostril
+      {x: 0.15, y: -0.1, z: 0.9},  // 19: Right nostril
+      {x: -0.15, y: 0.2, z: 0.9},  // 20: Left eyebrow
+      {x: 0.15, y: 0.2, z: 0.9},   // 21: Right eyebrow
+      
+      // Extra points for cybernetic enhancements
+      {x: -0.3, y: 0.4, z: 0.7},   // 22: Left temple
+      {x: 0.3, y: 0.4, z: 0.7},    // 23: Right temple
+      {x: 0, y: 0.6, z: 0.5},      // 24: Forehead center
+      {x: -0.4, y: -0.2, z: 0.65}, // 25: Left jaw
+      {x: 0.4, y: -0.2, z: 0.65}   // 26: Right jaw
+    ];
+    
+    // Define connections between vertices to create the monkey shape
+    const monkeyLines = [
+      // Face outline
+      [3, 4], [4, 6], [6, 8], [8, 7], [7, 5], [5, 3],
+      
+      // Nose
+      [3, 2], [2, 1], [1, 8],
+      
+      // Nostrils
+      [1, 18], [1, 19],
+      
+      // Eyes
+      [4, 20], [20, 3], [3, 21], [21, 5],
+      
+      // Ears
+      [4, 10], [10, 9], [9, 10], [10, 13],
+      [5, 12], [12, 11], [11, 12], [12, 13],
+      
+      // Back of head
+      [13, 14], [14, 15], [15, 8],
+      
+      // Mouth
+      [16, 17], [16, 8], [17, 8],
+      
+      // Cybernetic enhancements
+      [22, 10], [22, 4], [22, 24],
+      [23, 12], [23, 5], [23, 24],
+      [24, 3], [24, 13],
+      [6, 25], [25, 22],
+      [7, 26], [26, 23],
+      [25, 16], [26, 17]
+    ];
+    
+    // Feature points for special effects
+    const featurePoints = [
+      {index: 4, type: "eye"},     // Left eye
+      {index: 5, type: "eye"},     // Right eye
+      {index: 1, type: "nose"},    // Nose
+      {index: 9, type: "ear"},     // Left ear
+      {index: 11, type: "ear"},    // Right ear
+      {index: 22, type: "cyber"},  // Left temple
+      {index: 23, type: "cyber"},  // Right temple
+      {index: 24, type: "cyber"},  // Forehead
+      {index: 25, type: "cyber"},  // Left jaw implant
+      {index: 26, type: "cyber"}   // Right jaw implant
+    ];
+    
+    // Project 3D point to 2D with perspective
+    function project(point3D) {
+      const focalLength = 300;
+      const z = point3D.z * shape.scale;
+      const scale = focalLength / (focalLength + z);
+      
+      return {
+        x: point3D.x * scale * shape.scale + shape.x,
+        y: point3D.y * scale * shape.scale + shape.y,
+        z: z,
+        scale: scale // Store scale for dot size adjustments
+      };
+    }
+    
+    // Rotate a point in 3D space
+    function rotatePoint(point) {
+      let {x, y, z} = point;
+      
+      // Rotate around X axis
+      const cosX = Math.cos(shape.rotationX);
+      const sinX = Math.sin(shape.rotationX);
+      const y1 = y * cosX - z * sinX;
+      const z1 = y * sinX + z * cosX;
+      
+      // Rotate around Y axis
+      const cosY = Math.cos(shape.rotationY);
+      const sinY = Math.sin(shape.rotationY);
+      const x2 = x * cosY + z1 * sinY;
+      const z2 = -x * sinY + z1 * cosY;
+      
+      // Rotate around Z axis
+      const cosZ = Math.cos(shape.rotationZ);
+      const sinZ = Math.sin(shape.rotationZ);
+      const x3 = x2 * cosZ - y1 * sinZ;
+      const y3 = x2 * sinZ + y1 * cosZ;
+      
+      return { x: x3, y: y3, z: z2 };
+    }
+    
+    // Draw the monkey
+    function drawMonkey() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Apply rotation
+      shape.rotationX += 0.003;
+      shape.rotationY += 0.007;
+      shape.rotationZ += 0.002;
+      
+      // Only move shape based on velocity if not being dragged
+      if (!isDragging) {
+        shape.x += shape.velocityX;
+        shape.y += shape.velocityY;
+        
+        // Bounce off walls
+        if (shape.x < shape.scale || shape.x > canvas.width - shape.scale) {
+          shape.velocityX *= -1;
+          // Add a random jitter to velocity
+          shape.velocityX += (Math.random() - 0.5) * 0.5;
+        }
+        
+        if (shape.y < shape.scale || shape.y > canvas.height - shape.scale) {
+          shape.velocityY *= -1;
+          // Add a random jitter to velocity
+          shape.velocityY += (Math.random() - 0.5) * 0.5;
+        }
+        
+        // Keep velocity in reasonable range
+        shape.velocityX = Math.max(-4, Math.min(4, shape.velocityX));
+        shape.velocityY = Math.max(-4, Math.min(4, shape.velocityY));
+        
+        // Attract to mouse position when not dragging
+        const mouseAttractX = (mouse.x - shape.x) * mouse.influence;
+        const mouseAttractY = (mouse.y - shape.y) * mouse.influence;
+        shape.velocityX += mouseAttractX;
+        shape.velocityY += mouseAttractY;
+      }
+      
+      // Transform points (rotate and project)
+      const transformedPoints = monkeyVertices.map(point => {
+        const rotated = rotatePoint(point);
+        return project(rotated);
+      });
+      
+      // Sort connections by average z-value for proper depth rendering
+      const sortedLines = [...monkeyLines].map((line, index) => {
+        const p1 = transformedPoints[line[0]];
+        const p2 = transformedPoints[line[1]];
+        const avgZ = (p1.z + p2.z) / 2;
+        return { line, avgZ, index };
+      }).sort((a, b) => a.avgZ - b.avgZ);
+      
+      const time = Date.now() / 1000;
+      const pulse = (Math.sin(time * 2) + 1) / 2; // For pulsing effects
+      const colors = shape.colorSchemes[shape.currentColorScheme];
+      
+      // Draw connecting lines (back to front)
+      ctx.lineWidth = 1.5;
+      
+      sortedLines.forEach((lineData, i) => {
+        const { line, index } = lineData;
+        const p1 = transformedPoints[line[0]];
+        const p2 = transformedPoints[line[1]];
+        
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        
+        // Vary line color based on position
+        const colorIndex = index % colors.length;
+        ctx.strokeStyle = colors[colorIndex];
+        ctx.stroke();
+      });
+      
+      // Draw feature points with special effects
+      featurePoints.forEach(feature => {
+        const point = transformedPoints[feature.index];
+        
+        if (feature.type === "eye") {
+          // Draw glowing eyes
+          const eyeSize = 5 + pulse * 2;
+          
+          // Outer glow
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, eyeSize * 2, 0, Math.PI * 2);
+          const eyeGlow = ctx.createRadialGradient(
+            point.x, point.y, eyeSize * 0.5,
+            point.x, point.y, eyeSize * 2
+          );
+          eyeGlow.addColorStop(0, colors[1] + 'cc');
+          eyeGlow.addColorStop(1, 'rgba(0,0,0,0)');
+          ctx.fillStyle = eyeGlow;
+          ctx.fill();
+          
+          // Inner eye
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, eyeSize, 0, Math.PI * 2);
+          ctx.fillStyle = colors[0];
+          ctx.fill();
+          
+          // Pupil
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, eyeSize * 0.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#000';
+          ctx.fill();
+          
+          // Catchlight
+          ctx.beginPath();
+          ctx.arc(point.x - eyeSize * 0.2, point.y - eyeSize * 0.2, eyeSize * 0.2, 0, Math.PI * 2);
+          ctx.fillStyle = '#fff';
+          ctx.fill();
+        } 
+        else if (feature.type === "cyber") {
+          // Draw cybernetic implant nodes
+          const implantSize = 4 + pulse * 1.5;
+          
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, implantSize, 0, Math.PI * 2);
+          ctx.fillStyle = colors[3];
+          ctx.fill();
+          
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, implantSize * 0.6, 0, Math.PI * 2);
+          ctx.fillStyle = '#fff';
+          ctx.fill();
+          
+          // Draw data exchange lines
+          if (time % 3 < 1.5) {
+            const dataLength = 15 * pulse;
+            const angle = time * 3 + feature.index;
+            
+            ctx.beginPath();
+            ctx.moveTo(point.x, point.y);
+            ctx.lineTo(
+              point.x + Math.cos(angle) * dataLength, 
+              point.y + Math.sin(angle) * dataLength
+            );
+            ctx.strokeStyle = colors[2];
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 3]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+        else if (feature.type === "nose") {
+          // Nose highlight
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = colors[1];
+          ctx.fill();
+        }
+        else if (feature.type === "ear") {
+          // Ear detail
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 3, 0, Math.PI * 2);
+          ctx.fillStyle = colors[2];
+          ctx.fill();
+        }
+      });
+      
+      // Draw core glow at center of head
+      const centerPoint = transformedPoints[0];
+      const coreGradient = ctx.createRadialGradient(
+        centerPoint.x, centerPoint.y, 0,
+        centerPoint.x, centerPoint.y, shape.scale * 0.4
+      );
+      
+      coreGradient.addColorStop(0, colors[0] + '66');
+      coreGradient.addColorStop(1, 'rgba(0,0,0,0)');
+      
+      ctx.beginPath();
+      ctx.arc(centerPoint.x, centerPoint.y, shape.scale * 0.5, 0, Math.PI * 2);
+      ctx.fillStyle = coreGradient;
+      ctx.fill();
+      
+      // Draw circuit pattern around the head
+      const circuitLines = 6;
+      const baseAngle = time / 3;
+      
+      for (let i = 0; i < circuitLines; i++) {
+        const angle = baseAngle + (Math.PI * 2 / circuitLines) * i;
+        
+        // Draw circuit paths emanating from the center
+        const centerX = shape.x;
+        const centerY = shape.y;
+        const startX = centerX + Math.cos(angle) * (shape.scale * 0.3);
+        const startY = centerY + Math.sin(angle) * (shape.scale * 0.3);
+        const endX = centerX + Math.cos(angle) * (shape.scale * 1.5 + pulse * 15);
+        const endY = centerY + Math.sin(angle) * (shape.scale * 1.5 + pulse * 15);
+        
+        // Curved circuit path
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        
+        // Control points for curved path
+        const ctrlX1 = centerX + Math.cos(angle + 0.2) * (shape.scale * 0.8);
+        const ctrlY1 = centerY + Math.sin(angle + 0.2) * (shape.scale * 0.8);
+        const ctrlX2 = centerX + Math.cos(angle - 0.2) * (shape.scale * 1.2);
+        const ctrlY2 = centerY + Math.sin(angle - 0.2) * (shape.scale * 1.2);
+        
+        ctx.bezierCurveTo(ctrlX1, ctrlY1, ctrlX2, ctrlY2, endX, endY);
+        
+        ctx.strokeStyle = colors[i % colors.length];
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 8]);
+        ctx.lineDashOffset = time * 10;
+        ctx.stroke();
+        
+        // Draw circuit nodes along the path
+        const nodeCount = 2 + (i % 3);
+        for (let j = 1; j <= nodeCount; j++) {
+          const t = j / (nodeCount + 1);
+          
+          // Calculate point along the bezier curve
+          const bx = Math.pow(1-t, 3) * startX +
+                    3 * Math.pow(1-t, 2) * t * ctrlX1 +
+                    3 * (1-t) * Math.pow(t, 2) * ctrlX2 +
+                    Math.pow(t, 3) * endX;
+                    
+          const by = Math.pow(1-t, 3) * startY +
+                    3 * Math.pow(1-t, 2) * t * ctrlY1 +
+                    3 * (1-t) * Math.pow(t, 2) * ctrlY2 +
+                    Math.pow(t, 3) * endY;
+          
+          // Draw node
+          ctx.beginPath();
+          ctx.arc(bx, by, 2 + pulse * 2, 0, Math.PI * 2);
+          ctx.fillStyle = colors[(i + j) % colors.length];
+          ctx.fill();
+        }
+      }
+      
+      ctx.setLineDash([]);
+      
+      // Draw outer glow
+      const outerGradient = ctx.createRadialGradient(
+        shape.x, shape.y, shape.scale * 0.8,
+        shape.x, shape.y, shape.scale * 2
+      );
+      
+      outerGradient.addColorStop(0, 'rgba(0,255,255,0.1)');
+      outerGradient.addColorStop(0.5, 'rgba(255,0,204,0.05)');
+      outerGradient.addColorStop(1, 'rgba(0,0,0,0)');
+      
+      ctx.beginPath();
+      ctx.arc(shape.x, shape.y, shape.scale * 2, 0, Math.PI * 2);
+      ctx.fillStyle = outerGradient;
+      ctx.fill();
+    }
+    
+    // Handle mouse movement
+    document.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      
+      // Update custom cursor position
+      cursor.style.left = `${e.clientX}px`;
+      cursor.style.top = `${e.clientY}px`;
+      
+      // If dragging, update shape position directly
+      if (isDragging) {
+        shape.x = e.clientX - dragOffsetX;
+        shape.y = e.clientY - dragOffsetY;
+        
+        // Stop automatic movement while dragging
+        shape.velocityX = 0;
+        shape.velocityY = 0;
+      } else {
+        // Normal cursor behavior when not dragging
+        // Increase cursor size based on proximity to shape
+        const dx = e.clientX - shape.x;
+        const dy = e.clientY - shape.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < shape.scale * 2) {
+          const scale = 1 + (1 - distance / (shape.scale * 2)) * 1.5;
+          cursor.style.transform = `translate(-50%, -50%) scale(${scale})`;
+          
+          // Change cursor style when hoverable
+          if (distance < shape.scale) {
+            document.body.style.cursor = 'grab';
+            cursor.style.opacity = '0.7';
+          } else {
+            document.body.style.cursor = 'none';
+            cursor.style.opacity = '1';
+          }
+        } else {
+          cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+          document.body.style.cursor = 'none';
+          cursor.style.opacity = '1';
+        }
+      }
+    });
+    
+    // Handle mousedown for drag start
+    document.addEventListener('mousedown', (e) => {
+      const dx = e.clientX - shape.x;
+      const dy = e.clientY - shape.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Only start dragging if click is within the shape
+      if (distance < shape.scale) {
+        isDragging = true;
+        dragOffsetX = dx;
+        dragOffsetY = dy;
+        document.body.style.cursor = 'grabbing';
+        
+        // Trigger vibration feedback
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+      } else {
+        // Change color scheme on regular clicks outside the shape
+        shape.currentColorScheme = (shape.currentColorScheme + 1) % shape.colorSchemes.length;
+        
+        // Trigger vibration if supported by the device
+        if (navigator.vibrate) {
+          navigator.vibrate([100, 50, 200]);
+        }
+      }
+    });
+    
+    // Handle mouseup to end dragging
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        document.body.style.cursor = 'none';
+        
+        // Give shape a small random velocity when released
+        shape.velocityX = (Math.random() - 0.5) * 4;
+        shape.velocityY = (Math.random() - 0.5) * 4;
+        
+        // Small vibration on release
+        if (navigator.vibrate) {
+          navigator.vibrate(30);
+        }
+      }
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      // Reset shape position
+      shape.x = canvas.width / 2;
+      shape.y = canvas.height / 2;
+    });
+    
+    // Add touch support for mobile devices
+    document.addEventListener('touchmove', (e) => {
+      e.preventDefault(); // Prevent scrolling
+      
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        mouse.x = touch.clientX;
+        mouse.y = touch.clientY;
+        
+        // Update custom cursor position
+        cursor.style.left = `${touch.clientX}px`;
+        cursor.style.top = `${touch.clientY}px`;
+        
+        // If dragging, update shape position directly
+        if (isDragging) {
+          shape.x = touch.clientX - dragOffsetX;
+          shape.y = touch.clientY - dragOffsetY;
+          
+          // Stop automatic movement while dragging
+          shape.velocityX = 0;
+          shape.velocityY = 0;
+        }
+      }
+    }, { passive: false });
+    
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        
+        const dx = touch.clientX - shape.x;
+        const dy = touch.clientY - shape.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Only start dragging if touch is within the shape
+        if (distance < shape.scale) {
+          isDragging = true;
+          dragOffsetX = dx;
+          dragOffsetY = dy;
+          
+          // Trigger vibration feedback
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+        } else {
+          // Change color scheme on regular touches outside the shape
+          shape.currentColorScheme = (shape.currentColorScheme + 1) % shape.colorSchemes.length;
+          
+          // Trigger vibration if supported by the device
+          if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 200]);
+          }
+        }
+      }
+    }, { passive: false });
+    
+    document.addEventListener('touchend', () => {
+      if (isDragging) {
+        isDragging = false;
+        
+        // Give shape a small random velocity when released
+        shape.velocityX = (Math.random() - 0.5) * 4;
+        shape.velocityY = (Math.random() - 0.5) * 4;
+        
+        // Small vibration on release
+        if (navigator.vibrate) {
+          navigator.vibrate(30);
+        }
+      }
+    });
+    
+    // Animation loop
+    function animate() {
+      drawMonkey();
+      requestAnimationFrame(animate);
+    }
+    
+    // Start animation
+    animate();
+  </script>
+
+</body></html>

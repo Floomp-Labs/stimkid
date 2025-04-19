@@ -1,0 +1,29 @@
+.back-button {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  padding: 10px 20px;
+  background-color: var(--darker-bg);
+  color: var(--neon-blue);
+  border: 1px solid var(--neon-blue);
+  border-radius: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.9rem;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  box-shadow: 0 0 10px var(--neon-blue);
+}
+
+.back-button:hover {
+  background-color: var(--neon-white);
+  color: var(--darker-bg);
+  box-shadow: 0 0 15px var(--neon-white);
+  transform: translateY(-2px);
+}
+
+.back-button:active {
+  transform: translateY(0);
+} 

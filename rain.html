@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="apple-mobile-web-app-title" content="StimVerse">
+  <meta name="apple-mobile-web-app-orientations" content="portrait">
+  <meta name="theme-color" content="#000000">
+  <title>StimVerse - Rain Effect</title>
+  <script src="sound-toggle.js"></script>
+  <script src="lightning-fix.js"></script>
+  <link rel="stylesheet" href="back-button.css">
+  <style>
+    :root {
+      --neon-blue: #00ffff;
+      --darker-bg: #0a0a12;
+      --neon-white: #ffffff;
+      --safe-area-inset-top: env(safe-area-inset-top);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom);
+      --safe-area-inset-left: env(safe-area-inset-left);
+      --safe-area-inset-right: env(safe-area-inset-right);
+    }
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -webkit-text-size-adjust: 100%;
+      -webkit-overflow-scrolling: touch;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      perspective: 1000;
+    }
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: fixed;
+      -webkit-overflow-scrolling: touch;
+    }
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-transform: translate3d(0,0,0);
+      transform: translate3d(0,0,0);
+      background-color: var(--darker-bg);
+      font-family: 'Courier New', monospace;
+      touch-action: none;
+      user-select: none;
+    }
+    
+    #canvas-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      touch-action: none;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      perspective: 1000;
+      z-index: 1;
+      cursor: pointer;
+    }
+
+    .back-button {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 2;
+      text-decoration: none;
+      color: var(--neon-blue);
+      font-size: 18px;
+      padding: 10px 20px;
+      border: 2px solid var(--neon-blue);
+      border-radius: 5px;
+      background: rgba(0, 0, 0, 0.5);
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+
+    .back-button:hover {
+      background: var(--neon-blue);
+      color: var(--darker-bg);
+      box-shadow: 0 0 10px var(--neon-blue);
+    }
+  </style>
+</head>
+<body>
+  <div id="canvas-container">
+    <canvas id="rainCanvas"></canvas>
+    <a href="index.html" class="back-button">BACK</a>
+  </div>
+
+  <script>
+    // iOS detection
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    
+    // Get canvas and context
+    const canvas = document.getElementById('rainCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Rain effect
+    const rain = {
+      drops: [],
+      colorSchemes: [
+        ['#00ffff', '#00ff66', '#ff00ff'],
+        ['#ff00ff', '#00ffff', '#00ff66'],
+        ['#00ff66', '#ff00ff', '#00ffff']
+      ],
+      currentColorScheme: 0,
+      maxDrops: isIOS ? 50 : 100,
+      mouseX: canvas.width / 2,
+      mouseY: canvas.height / 2,
+      shapes: [
+        { type: 'cube', x: 0, y: 0, size: 120, rotation: 0, speed: 0.01 },
+        { type: 'bug', x: 0, y: 0, size: 100, rotation: Math.PI/3, speed: -0.015 },
+        { type: 'helix', x: 0, y: 0, size: 90, rotation: Math.PI/6, speed: 0.02 }
+      ],
+      
+      init: function() {
+        // Create rain drops
+        for (let i = 0; i < this.maxDrops; i++) {
+          this.drops.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            length: Math.random() * 20 + 10,
+            speed: Math.random() * 5 + 2,
+            thickness: Math.random() * 2 + 1,
+            color: this.getRandomColor()
+          });
+        }
+        
+        // Initialize shape positions
+        this.updateShapePositions();
+      },
+      
+      updateShapePositions: function() {
+        const angleStep = (Math.PI * 2) / this.shapes.length;
+        const baseRadius = 100;
+        
+        for (let i = 0; i < this.shapes.length; i++) {
+          const angle = angleStep * i;
+          this.shapes[i].x = this.mouseX + Math.cos(angle) * baseRadius;
+          this.shapes[i].y = this.mouseY + Math.sin(angle) * baseRadius;
+        }
+      },
+      
+      getRandomColor: function() {
+        const colors = this.colorSchemes[this.currentColorScheme];
+        return colors[Math.floor(Math.random() * colors.length)];
+      },
+      
+      update: function() {
+        // Update shape positions and rotations
+        for (let i = 0; i < this.shapes.length; i++) {
+          const shape = this.shapes[i];
+          
+          // Smooth movement
+          const dx = this.mouseX - shape.x;
+          const dy = this.mouseY - shape.y;
+          shape.x += dx * 0.1;
+          shape.y += dy * 0.1;
+          
+          // Update rotation
+          shape.rotation += shape.speed;
+        }
+        
+        // Update rain drops
+        for (let i = 0; i < this.drops.length; i++) {
+          const drop = this.drops[i];
+          drop.y += drop.speed;
+          if (drop.y > canvas.height) {
+            drop.y = -drop.length;
+            drop.x = Math.random() * canvas.width;
+          }
+        }
+      },
+      
+      draw: function() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Enable shadow effects
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        
+        // Draw city skyline
+        this.drawSkyline();
+        
+        // Draw rain drops
+        for (let i = 0; i < this.drops.length; i++) {
+          const drop = this.drops[i];
+          
+          ctx.beginPath();
+          ctx.moveTo(drop.x, drop.y);
+          ctx.lineTo(drop.x, drop.y + drop.length);
+          
+          const gradient = ctx.createLinearGradient(drop.x, drop.y, drop.x, drop.y + drop.length);
+          gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+          gradient.addColorStop(0.5, drop.color);
+          gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          
+          ctx.strokeStyle = gradient;
+          ctx.lineWidth = drop.thickness;
+          ctx.lineCap = 'round';
+          
+          ctx.shadowColor = drop.color;
+          ctx.shadowBlur = 15;
+          ctx.stroke();
+        }
+        
+        // Draw shapes
+        this.drawShapes();
+        
+        // Draw scan lines
+        this.drawScanLines();
+      },
+      
+      drawShapes: function() {
+        for (let i = 0; i < this.shapes.length; i++) {
+          const shape = this.shapes[i];
+          ctx.save();
+          ctx.translate(shape.x, shape.y);
+          ctx.rotate(shape.rotation);
+          
+          const color = this.getRandomColor();
+          ctx.strokeStyle = color;
+          ctx.shadowColor = color;
+          ctx.shadowBlur = isIOS ? 50 : 30;
+          ctx.lineWidth = isIOS ? 8 : 4;
+          
+          // Draw shape multiple times for better visibility on iOS
+          if (isIOS) {
+            ctx.globalCompositeOperation = 'lighter';
+            for (let j = 0; j < 3; j++) {
+              switch(shape.type) {
+                case 'cube':
+                  this.drawCube(shape.size);
+                  break;
+                case 'bug':
+                  this.drawBug(shape.size);
+                  break;
+                case 'helix':
+                  this.drawHelix(shape.size);
+                  break;
+              }
+            }
+            ctx.globalCompositeOperation = 'source-over';
+          } else {
+            switch(shape.type) {
+              case 'cube':
+                this.drawCube(shape.size);
+                break;
+              case 'bug':
+                this.drawBug(shape.size);
+                break;
+              case 'helix':
+                this.drawHelix(shape.size);
+                break;
+            }
+          }
+          
+          ctx.restore();
+        }
+      },
+      
+      drawCube: function(size) {
+        const halfSize = size / 2;
+        // Draw front face
+        ctx.beginPath();
+        ctx.moveTo(-halfSize, -halfSize);
+        ctx.lineTo(halfSize, -halfSize);
+        ctx.lineTo(halfSize, halfSize);
+        ctx.lineTo(-halfSize, halfSize);
+        ctx.closePath();
+        ctx.stroke();
+        
+        // Draw back face
+        ctx.beginPath();
+        ctx.moveTo(-halfSize * 0.7, -halfSize * 0.7);
+        ctx.lineTo(halfSize * 0.7, -halfSize * 0.7);
+        ctx.lineTo(halfSize * 0.7, halfSize * 0.7);
+        ctx.lineTo(-halfSize * 0.7, halfSize * 0.7);
+        ctx.closePath();
+        ctx.stroke();
+        
+        // Draw connecting lines
+        ctx.beginPath();
+        ctx.moveTo(-halfSize, -halfSize);
+        ctx.lineTo(-halfSize * 0.7, -halfSize * 0.7);
+        ctx.moveTo(halfSize, -halfSize);
+        ctx.lineTo(halfSize * 0.7, -halfSize * 0.7);
+        ctx.moveTo(halfSize, halfSize);
+        ctx.lineTo(halfSize * 0.7, halfSize * 0.7);
+        ctx.moveTo(-halfSize, halfSize);
+        ctx.lineTo(-halfSize * 0.7, halfSize * 0.7);
+        ctx.stroke();
+      },
+      
+      drawBug: function(size) {
+        const halfSize = size / 2;
+        // Draw body
+        ctx.beginPath();
+        ctx.ellipse(0, 0, halfSize * 0.6, halfSize * 0.4, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Draw head
+        ctx.beginPath();
+        ctx.ellipse(halfSize * 0.3, 0, halfSize * 0.2, halfSize * 0.2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // Draw antennae
+        ctx.beginPath();
+        ctx.moveTo(halfSize * 0.3, -halfSize * 0.2);
+        ctx.lineTo(halfSize * 0.5, -halfSize * 0.3);
+        ctx.moveTo(halfSize * 0.3, halfSize * 0.2);
+        ctx.lineTo(halfSize * 0.5, halfSize * 0.3);
+        ctx.stroke();
+        
+        // Draw legs
+        for (let i = -1; i <= 1; i += 2) {
+          ctx.beginPath();
+          ctx.moveTo(-halfSize * 0.2, i * halfSize * 0.2);
+          ctx.lineTo(-halfSize * 0.4, i * halfSize * 0.3);
+          ctx.moveTo(0, i * halfSize * 0.2);
+          ctx.lineTo(halfSize * 0.2, i * halfSize * 0.3);
+          ctx.stroke();
+        }
+      },
+      
+      drawHelix: function(size) {
+        const segments = isIOS ? 6 : 8;
+        const angleStep = (Math.PI * 2) / segments;
+        const radius = size / 2;
+        
+        ctx.beginPath();
+        for (let i = 0; i <= segments; i++) {
+          const angle = angleStep * i;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          const z = (i / segments) * size - size / 2;
+          
+          if (i === 0) {
+            ctx.moveTo(x, y + z * 0.3);
+          } else {
+            ctx.lineTo(x, y + z * 0.3);
+          }
+        }
+        ctx.stroke();
+      },
+      
+      drawSkyline: function() {
+        const buildingCount = 10;
+        const buildingWidth = canvas.width / buildingCount;
+        const maxHeight = canvas.height * 0.3;
+        
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        
+        for (let i = 0; i < buildingCount; i++) {
+          const height = Math.random() * maxHeight;
+          const x = i * buildingWidth;
+          const y = canvas.height - height;
+          
+          ctx.fillRect(x, y, buildingWidth, height);
+        }
+      },
+      
+      drawScanLines: function() {
+        ctx.shadowBlur = 0;
+        
+        for (let i = 0; i < canvas.height; i += 4) {
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+          ctx.fillRect(0, i, canvas.width, 1);
+        }
+      },
+      
+      changeColor: function() {
+        this.currentColorScheme = (this.currentColorScheme + 1) % this.colorSchemes.length;
+        
+        // Update all drop colors
+        for (let i = 0; i < this.drops.length; i++) {
+          this.drops[i].color = this.getRandomColor();
+        }
+        
+        // Trigger vibration if supported
+        if (navigator.vibrate) {
+          navigator.vibrate([50, 30, 50]);
+        }
+      }
+    };
+    
+    // Initialize rain effect
+    rain.init();
+    
+    // Initialize lightning effect
+    const lightning = new LightningEffect(canvas, {
+      color: '#00ffff',
+      intensity: 0.3,
+      frequency: 0.005,
+      maxBranches: 2
+    });
+    
+    // Animation loop
+    let lastTime = 0;
+    function animate(timestamp) {
+      // Throttle updates on iOS
+      if (isIOS && timestamp - lastTime < 16) {
+        requestAnimationFrame(animate);
+        return;
+      }
+      lastTime = timestamp;
+      
+      rain.update();
+      rain.draw();
+      lightning.update(timestamp);
+      
+      requestAnimationFrame(animate);
+    }
+    
+    // Start animation
+    requestAnimationFrame(animate);
+    
+    // Handle touch events
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const x = e.touches[0].clientX - rect.left;
+      const y = e.touches[0].clientY - rect.top;
+      rain.changeColor();
+    }, { passive: false });
+    
+    // Handle click events
+    canvas.addEventListener('click', (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      rain.changeColor();
+    });
+    
+    // Add mouse move handler for better interaction
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      rain.mouseX = e.clientX - rect.left;
+      rain.mouseY = e.clientY - rect.top;
+      rain.updateShapePositions();
+    });
+
+    // Add touch move handler
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      rain.mouseX = e.touches[0].clientX - rect.left;
+      rain.mouseY = e.touches[0].clientY - rect.top;
+      rain.updateShapePositions();
+    }, { passive: false });
+  </script>
+</body>
+</html>
+
+

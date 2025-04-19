@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="apple-mobile-web-app-title" content="StimVerse">
+  <meta name="apple-mobile-web-app-orientations" content="portrait">
+  <meta name="theme-color" content="#000000">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="apple-touch-startup-image" href="splash.png">
+  <script>
+    // iOS loading fixes
+    window.addEventListener(load, function() {
+      // Force layout recalculation
+      document.body.style.display = none;
+      document.body.offsetHeight;
+      document.body.style.display = ;
+      
+      // Fix for iOS Safari 100vh issue
+      function setAppHeight() {
+        const doc = document.documentElement;
+        doc.style.setProperty(--app-height, `${window.innerHeight}px`);
+      }
+      window.addEventListener(resize, setAppHeight);
+      setAppHeight();
+      
+      // Fix for iOS Safari canvas rendering
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+        const canvas = document.querySelector(canvas);
+        if (canvas) {
+          const context = canvas.getContext(webgl) || canvas.getContext(2d);
+          if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(canvas, 0, 0);
+          }
+        }
+      }
+    });
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui">
+  <title>StimVerse - Interactive Bug</title>
+  <script>
+    // iOS Safari specific fixes
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+      // Prevent double-tap zoom
+      document.addEventListener(touchstart, function(e) {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      // Prevent elastic scrolling
+      document.body.addEventListener(touchmove, function(e) {
+        if (e.target.tagName === CANVAS) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      // Fix for iOS Safari canvas rendering
+      function fixCanvasRendering() {
+        const canvas = document.querySelector(canvas);
+        if (canvas) {
+          const context = canvas.getContext(webgl) || canvas.getContext(2d);
+          if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(canvas, 0, 0);
+          }
+        }
+      }
+      
+      // Fix for iOS Safari orientation changes
+      window.addEventListener(orientationchange, function() {
+        setTimeout(function() {
+          fixCanvasRendering();
+          setAppHeight();
+        }, 100);
+      });
+    }
+  </script>
+  <script src="sound-toggle.js"></script>
+  <link rel="stylesheet" href="back-button.css">
+  <style>
+    :root {
+      --safe-area-inset-top: env(safe-area-inset-top);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom);
+      --safe-area-inset-left: env(safe-area-inset-left);
+      --safe-area-inset-right: env(safe-area-inset-right);
+    }
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -webkit-text-size-adjust: 100%;
+      -webkit-overflow-scrolling: touch;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      perspective: 1000;
+    }
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: fixed;
+      -webkit-overflow-scrolling: touch;
+    }
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-transform: translate3d(0,0,0);
+      transform: translate3d(0,0,0);
+    }
+    @supports (-webkit-touch-callout: none) {
+      body {
+        min-height: -webkit-fill-available;
+      }
+    }
+    canvas {
+      touch-action: none;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      perspective: 1000;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    :root {
+      --neon-blue: #00ffff;
+      --darker-bg: #0a0a12;
+      --neon-white: #ffffff;
+    }
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: #0a0a12;
+      cursor: none;
+      font-family: 'Courier New', monospace;
+    }
+    
+    #canvas-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    
+    .cursor {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,0,204,0.8) 0%, rgba(0,204,255,0) 70%);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 999;
+      box-shadow: 0 0 15px 5px rgba(0, 255, 255, 0.3);
+    }
+    
+    .cursor::after {
+      content: "";
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #00ffff;
+      top: 5px;
+      left: 5px;
+    }
+    
+    .info {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      color: #00ffff;
+      font-size: 12px;
+      z-index: 100;
+      opacity: 0.7;
+      text-shadow: 0 0 5px #ff00cc;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="scanline"></div>
+  
+  <a href="index.html" class="back-button">BACK</a>
+  
+  <div id="bug-container">
+    <div id="canvas-container">
+      <canvas id="scene"></canvas>
+      <div class="cursor"></div>
+      <div class="info">MOVE CURSOR TO INTERACT | DRAG TRIANGLE TO REPOSITION | CLICK OUTSIDE TO CHANGE COLOR</div>
+    </div>
+  </div>
+
+  <script>
+    // Initialize variables
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d');
+    const cursor = document.querySelector('.cursor');
+    
+    // Set canvas dimensions
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    
+    // Dragging state
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    
+    // Shape properties
+    let shape = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      scale: 100, // Base scale for the triangle
+      velocityX: 2.5,
+      velocityY: 2.0,
+      rotationX: 0,
+      rotationY: 0,
+      rotationZ: 0,
+      currentColorScheme: 0,
+      colorSchemes: [
+        ['#ff00cc', '#00ffcc', '#ff00ff', '#00ccff'], // Default cyberpunk
+        ['#ff6600', '#ffcc00', '#ff3300', '#ff9900'], // Orange fire
+        ['#00ff66', '#33ff99', '#00cc33', '#66ffcc'], // Matrix green
+        ['#9900ff', '#cc66ff', '#6600cc', '#cc33ff']  // Neon purple
+      ]
+    };
+    
+    // Mouse position
+    let mouse = {
+      x: canvas.width / 2,
+      y: canvas.height / 2,
+      influence: 0.08 // How much the mouse affects the shape
+    };
+
+    // Define triangular pyramid (tetrahedron) vertices
+    const vertices = [
+      { x: 0, y: -1, z: 0 },       // Top vertex
+      { x: -0.866, y: 0.5, z: -0.5 }, // Bottom left
+      { x: 0.866, y: 0.5, z: -0.5 },  // Bottom right
+      { x: 0, y: 0.5, z: 1 }       // Bottom back
+    ];
+    
+    // Define faces of the triangular pyramid
+    const faces = [
+      [0, 1, 2], // Front face
+      [0, 2, 3], // Right face
+      [0, 3, 1], // Left face
+      [1, 3, 2]  // Bottom face
+    ];
+    
+    // Define edges for wireframe
+    const edges = [
+      [0, 1], [0, 2], [0, 3], // Edges from top vertex
+      [1, 2], [2, 3], [3, 1]  // Base edges
+    ];
+    
+    // Project 3D point to 2D with perspective
+    function project(point3D) {
+      const focalLength = 300;
+      const z = point3D.z * shape.scale;
+      const scale = focalLength / (focalLength + z);
+      
+      return {
+        x: point3D.x * scale * shape.scale + shape.x,
+        y: point3D.y * scale * shape.scale + shape.y,
+        z: z,
+        scale: scale
+      };
+    }
+    
+    // Rotate a point in 3D space
+    function rotatePoint(point) {
+      let {x, y, z} = point;
+      
+      // Rotate around X axis
+      const cosX = Math.cos(shape.rotationX);
+      const sinX = Math.sin(shape.rotationX);
+      const y1 = y * cosX - z * sinX;
+      const z1 = y * sinX + z * cosX;
+      
+      // Rotate around Y axis
+      const cosY = Math.cos(shape.rotationY);
+      const sinY = Math.sin(shape.rotationY);
+      const x2 = x * cosY + z1 * sinY;
+      const z2 = -x * sinY + z1 * cosY;
+      
+      // Rotate around Z axis
+      const cosZ = Math.cos(shape.rotationZ);
+      const sinZ = Math.sin(shape.rotationZ);
+      const x3 = x2 * cosZ - y1 * sinZ;
+      const y3 = x2 * sinZ + y1 * cosZ;
+      
+      return { x: x3, y: y3, z: z2 };
+    }
+    
+    // Draw the triangle
+    function drawTriangle() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Apply rotation
+      shape.rotationX += 0.005;
+      shape.rotationY += 0.007;
+      shape.rotationZ += 0.003;
+      
+      // Only move shape based on velocity if not being dragged
+      if (!isDragging) {
+        shape.x += shape.velocityX;
+        shape.y += shape.velocityY;
+        
+        // Bounce off walls
+        if (shape.x < shape.scale || shape.x > canvas.width - shape.scale) {
+          shape.velocityX *= -1;
+          // Add a random jitter to velocity
+          shape.velocityX += (Math.random() - 0.5) * 0.5;
+          
+          // Add a small vibration on wall bounce
+          if (navigator.vibrate) {
+            navigator.vibrate(20);
+          }
+        }
+        
+        if (shape.y < shape.scale || shape.y > canvas.height - shape.scale) {
+          shape.velocityY *= -1;
+          // Add a random jitter to velocity
+          shape.velocityY += (Math.random() - 0.5) * 0.5;
+          
+          // Add a small vibration on wall bounce
+          if (navigator.vibrate) {
+            navigator.vibrate(20);
+          }
+        }
+        
+        // Keep velocity in reasonable range
+        shape.velocityX = Math.max(-4, Math.min(4, shape.velocityX));
+        shape.velocityY = Math.max(-4, Math.min(4, shape.velocityY));
+        
+        // Attract to mouse position when not dragging
+        const mouseAttractX = (mouse.x - shape.x) * mouse.influence;
+        const mouseAttractY = (mouse.y - shape.y) * mouse.influence;
+        shape.velocityX += mouseAttractX;
+        shape.velocityY += mouseAttractY;
+      }
+      
+      // Transform points (rotate and project)
+      const transformedVertices = vertices.map(point => {
+        const rotated = rotatePoint(point);
+        return project(rotated);
+      });
+      
+      // Sort faces by z-depth for proper rendering (painter's algorithm)
+      const sortedFaces = [...faces].map((face, index) => {
+        // Calculate average z value of face
+        const avgZ = face.reduce((sum, vertexIndex) => {
+          return sum + transformedVertices[vertexIndex].z;
+        }, 0) / face.length;
+        
+        return { face, avgZ, index };
+      }).sort((a, b) => a.avgZ - b.avgZ);
+      
+      const time = Date.now() / 1000;
+      const pulse = (Math.sin(time * 2) + 1) / 2; // For pulsing effects
+      const colors = shape.colorSchemes[shape.currentColorScheme];
+      
+      // Draw faces (back to front)
+      sortedFaces.forEach((faceData, i) => {
+        const { face, index } = faceData;
+        
+        ctx.beginPath();
+        ctx.moveTo(transformedVertices[face[0]].x, transformedVertices[face[0]].y);
+        ctx.lineTo(transformedVertices[face[1]].x, transformedVertices[face[1]].y);
+        ctx.lineTo(transformedVertices[face[2]].x, transformedVertices[face[2]].y);
+        ctx.closePath();
+        
+        // Create gradient for this face
+        const gradX = transformedVertices[face[0]].x;
+        const gradY = transformedVertices[face[0]].y;
+        const gradRadius = shape.scale * Math.max(0.5, transformedVertices[face[0]].scale);
+        
+        const gradient = ctx.createRadialGradient(
+          gradX, gradY, 0,
+          gradX, gradY, gradRadius
+        );
+        
+        const colorIndex1 = index % colors.length;
+        const colorIndex2 = (index + 2) % colors.length;
+        
+        gradient.addColorStop(0, colors[colorIndex1] + 'cc');
+        gradient.addColorStop(1, colors[colorIndex2] + '77');
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+      });
+      
+      // Draw edges with glow effect
+      edges.forEach((edge, i) => {
+        const p1 = transformedVertices[edge[0]];
+        const p2 = transformedVertices[edge[1]];
+        
+        // Main edge
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.strokeStyle = colors[i % colors.length];
+        ctx.lineWidth = 2 + pulse;
+        ctx.stroke();
+        
+        // Glow effect
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.strokeStyle = colors[(i + 1) % colors.length] + '33';
+        ctx.lineWidth = 6 + pulse * 2;
+        ctx.stroke();
+      });
+      
+      // Draw vertex points
+      transformedVertices.forEach((point, i) => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 5 + pulse * 2, 0, Math.PI * 2);
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+        
+        // Vertex glow
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 8 + pulse * 3, 0, Math.PI * 2);
+        const vertexGlow = ctx.createRadialGradient(
+          point.x, point.y, 3,
+          point.x, point.y, 8 + pulse * 3
+        );
+        vertexGlow.addColorStop(0, colors[i % colors.length] + 'cc');
+        vertexGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = vertexGlow;
+        ctx.fill();
+      });
+      
+      // Draw circuit pattern around the triangle
+      const circuitLines = 5;
+      const baseAngle = time / 3;
+      
+      for (let i = 0; i < circuitLines; i++) {
+        const angle = baseAngle + (Math.PI * 2 / circuitLines) * i;
+        
+        // Draw circuit paths
+        const startX = shape.x + Math.cos(angle) * (shape.scale * 0.3);
+        const startY = shape.y + Math.sin(angle) * (shape.scale * 0.3);
+        const endX = shape.x + Math.cos(angle) * (shape.scale * 1.5 + pulse * 15);
+        const endY = shape.y + Math.sin(angle) * (shape.scale * 1.5 + pulse * 15);
+        
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+        
+        ctx.strokeStyle = colors[i % colors.length];
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 8]);
+        ctx.lineDashOffset = time * 10;
+        ctx.stroke();
+        
+        // Circuit node
+        ctx.beginPath();
+        ctx.arc(endX, endY, 3 + pulse * 2, 0, Math.PI * 2);
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+      }
+      
+      ctx.setLineDash([]);
+      
+      // Draw cyberpunk orbital rings
+      const ringCount = 2;
+      for (let i = 0; i < ringCount; i++) {
+        ctx.beginPath();
+        
+        // Create rotating ellipses that tilt in 3D space
+        const tilt = 0.3 + 0.2 * i;
+        const ringRadius = shape.scale * (1.2 + i * 0.2);
+        const rotOffset = (i % 2 === 0 ? 1 : -1) * time / 3;
+        
+        ctx.save();
+        ctx.translate(shape.x, shape.y);
+        ctx.rotate(rotOffset);
+        ctx.scale(1, tilt);
+        ctx.beginPath();
+        ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
+        ctx.restore();
+        
+        ctx.strokeStyle = colors[i % colors.length];
+        ctx.lineWidth = 1.5 + pulse;
+        ctx.setLineDash([5, 8]);
+        ctx.lineDashOffset = time * 20 * (i % 2 === 0 ? 1 : -1);
+        ctx.stroke();
+      }
+      
+      ctx.setLineDash([]);
+      
+      // Draw outer glow
+      const outerGradient = ctx.createRadialGradient(
+        shape.x, shape.y, shape.scale * 0.8,
+        shape.x, shape.y, shape.scale * 2
+      );
+      
+      outerGradient.addColorStop(0, 'rgba(0,255,255,0.1)');
+      outerGradient.addColorStop(0.5, 'rgba(255,0,204,0.05)');
+      outerGradient.addColorStop(1, 'rgba(0,0,0,0)');
+      
+      ctx.beginPath();
+      ctx.arc(shape.x, shape.y, shape.scale * 2, 0, Math.PI * 2);
+      ctx.fillStyle = outerGradient;
+      ctx.fill();
+      
+      // Draw data flow animations along the edges
+      edges.forEach((edge, i) => {
+        const p1 = transformedVertices[edge[0]];
+        const p2 = transformedVertices[edge[1]];
+        
+        // Data flow position calculation
+        const flowSpeed = 0.3; // Speed of flow
+        const flowPosition = (time * flowSpeed) % 1;
+        
+        // Calculate point along the edge
+        const flowX = p1.x + (p2.x - p1.x) * flowPosition;
+        const flowY = p1.y + (p2.y - p1.y) * flowPosition;
+        
+        // Draw data packet
+        ctx.beginPath();
+        ctx.arc(flowX, flowY, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        
+        // Draw data packet trail
+        ctx.beginPath();
+        ctx.moveTo(flowX, flowY);
+        const trailLength = 0.2; // Length of trail
+        const trailStart = Math.max(0, flowPosition - trailLength);
+        const trailX = p1.x + (p2.x - p1.x) * trailStart;
+        const trailY = p1.y + (p2.y - p1.y) * trailStart;
+        ctx.lineTo(trailX, trailY);
+        
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+    }
+    
+    // Handle mouse movement
+    document.addEventListener('mousemove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      
+      // Update custom cursor position
+      cursor.style.left = `${e.clientX}px`;
+      cursor.style.top = `${e.clientY}px`;
+      
+      // If dragging, update shape position directly
+      if (isDragging) {
+        shape.x = e.clientX - dragOffsetX;
+        shape.y = e.clientY - dragOffsetY;
+        
+        // Stop automatic movement while dragging
+        shape.velocityX = 0;
+        shape.velocityY = 0;
+      } else {
+        // Normal cursor behavior when not dragging
+        // Increase cursor size based on proximity to shape
+        const dx = e.clientX - shape.x;
+        const dy = e.clientY - shape.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < shape.scale * 2) {
+          const scale = 1 + (1 - distance / (shape.scale * 2)) * 1.5;
+          cursor.style.transform = `translate(-50%, -50%) scale(${scale})`;
+          
+          // Change cursor style when hoverable
+          if (distance < shape.scale) {
+            document.body.style.cursor = 'grab';
+            cursor.style.opacity = '0.7';
+          } else {
+            document.body.style.cursor = 'none';
+            cursor.style.opacity = '1';
+          }
+        } else {
+          cursor.style.transform = 'translate(-50%, -50%) scale(1)';
+          document.body.style.cursor = 'none';
+          cursor.style.opacity = '1';
+        }
+      }
+    });
+    
+    // Handle mousedown for drag start
+    document.addEventListener('mousedown', (e) => {
+      const dx = e.clientX - shape.x;
+      const dy = e.clientY - shape.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      // Only start dragging if click is within the shape
+      if (distance < shape.scale) {
+        isDragging = true;
+        dragOffsetX = dx;
+        dragOffsetY = dy;
+        document.body.style.cursor = 'grabbing';
+        
+        // Trigger vibration feedback
+        if (navigator.vibrate) {
+          navigator.vibrate(50);
+        }
+      } else {
+        // Change color scheme on regular clicks outside the shape
+        shape.currentColorScheme = (shape.currentColorScheme + 1) % shape.colorSchemes.length;
+        
+        // Trigger vibration if supported by the device
+        if (navigator.vibrate) {
+          navigator.vibrate([100, 50, 200]);
+        }
+      }
+    });
+    
+    // Handle mouseup to end dragging
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        document.body.style.cursor = 'none';
+        
+        // Give shape a small random velocity when released
+        shape.velocityX = (Math.random() - 0.5) * 4;
+        shape.velocityY = (Math.random() - 0.5) * 4;
+        
+        // Small vibration on release
+        if (navigator.vibrate) {
+          navigator.vibrate(30);
+        }
+      }
+    });
+    
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      
+      // Reset shape position
+      shape.x = canvas.width / 2;
+      shape.y = canvas.height / 2;
+    });
+    
+    // Add touch support for mobile devices
+    document.addEventListener('touchmove', (e) => {
+      e.preventDefault(); // Prevent scrolling
+      
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        mouse.x = touch.clientX;
+        mouse.y = touch.clientY;
+        
+        // Update custom cursor position
+        cursor.style.left = `${touch.clientX}px`;
+        cursor.style.top = `${touch.clientY}px`;
+        
+        // If dragging, update shape position directly
+        if (isDragging) {
+          shape.x = touch.clientX - dragOffsetX;
+          shape.y = touch.clientY - dragOffsetY;
+          
+          // Stop automatic movement while dragging
+          shape.velocityX = 0;
+          shape.velocityY = 0;
+        }
+      }
+    }, { passive: false });
+    
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches.length > 0) {
+        const touch = e.touches[0];
+        
+        const dx = touch.clientX - shape.x;
+        const dy = touch.clientY - shape.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        // Only start dragging if touch is within the shape
+        if (distance < shape.scale) {
+          isDragging = true;
+          dragOffsetX = dx;
+          dragOffsetY = dy;
+          
+          // Trigger vibration feedback
+          if (navigator.vibrate) {
+            navigator.vibrate(50);
+          }
+        } else {
+          // Change color scheme on regular touches outside the shape
+          shape.currentColorScheme = (shape.currentColorScheme + 1) % shape.colorSchemes.length;
+          
+          // Trigger vibration if supported by the device
+          if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 200]);
+          }
+        }
+      }
+    }, { passive: false });
+    
+    document.addEventListener('touchend', () => {
+      if (isDragging) {
+        isDragging = false;
+        
+        // Give shape a small random velocity when released
+        shape.velocityX = (Math.random() - 0.5) * 4;
+        shape.velocityY = (Math.random() - 0.5) * 4;
+        
+        // Small vibration on release
+        if (navigator.vibrate) {
+          navigator.vibrate(30);
+        }
+      }
+    });
+    
+    // Animation loop
+    function animate() {
+      drawTriangle();
+      requestAnimationFrame(animate);
+    }
+    
+    // Start animation
+    animate();
+  </script>
+</body>
+</html>
+Last edited just now
+
+

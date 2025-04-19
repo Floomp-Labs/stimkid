@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-touch-fullscreen" content="yes">
+  <meta name="apple-mobile-web-app-title" content="StimVerse">
+  <meta name="apple-mobile-web-app-orientations" content="portrait">
+  <meta name="theme-color" content="#000000">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="apple-touch-startup-image" href="splash.png">
+  <script>
+    // iOS loading fixes
+    window.addEventListener(load, function() {
+      // Force layout recalculation
+      document.body.style.display = none;
+      document.body.offsetHeight;
+      document.body.style.display = ;
+      
+      // Fix for iOS Safari 100vh issue
+      function setAppHeight() {
+        const doc = document.documentElement;
+        doc.style.setProperty(--app-height, `${window.innerHeight}px`);
+      }
+      window.addEventListener(resize, setAppHeight);
+      setAppHeight();
+      
+      // Fix for iOS Safari canvas rendering
+      if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+        const canvas = document.querySelector(canvas);
+        if (canvas) {
+          const context = canvas.getContext(webgl) || canvas.getContext(2d);
+          if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(canvas, 0, 0);
+          }
+        }
+      }
+    });
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, minimal-ui">
+  <title>StimVerse - Chrome Shape</title>
+  <script>
+    // iOS Safari specific fixes
+    if (/iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream) {
+      // Prevent double-tap zoom
+      document.addEventListener(touchstart, function(e) {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      // Prevent elastic scrolling
+      document.body.addEventListener(touchmove, function(e) {
+        if (e.target.tagName === CANVAS) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      // Fix for iOS Safari canvas rendering
+      function fixCanvasRendering() {
+        const canvas = document.querySelector(canvas);
+        if (canvas) {
+          const context = canvas.getContext(webgl) || canvas.getContext(2d);
+          if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(canvas, 0, 0);
+          }
+        }
+      }
+      
+      // Fix for iOS Safari orientation changes
+      window.addEventListener(orientationchange, function() {
+        setTimeout(function() {
+          fixCanvasRendering();
+          setAppHeight();
+        }, 100);
+      });
+    }
+  </script>
+  <script src="sound-toggle.js"></script>
+  <style>
+    :root {
+      --safe-area-inset-top: env(safe-area-inset-top);
+      --safe-area-inset-bottom: env(safe-area-inset-bottom);
+      --safe-area-inset-left: env(safe-area-inset-left);
+      --safe-area-inset-right: env(safe-area-inset-right);
+    }
+    * {
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -webkit-text-size-adjust: 100%;
+      -webkit-overflow-scrolling: touch;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      perspective: 1000;
+    }
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      position: fixed;
+      -webkit-overflow-scrolling: touch;
+    }
+    body {
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
+      -webkit-transform: translate3d(0,0,0);
+      transform: translate3d(0,0,0);
+    }
+    @supports (-webkit-touch-callout: none) {
+      body {
+        min-height: -webkit-fill-available;
+      }
+    }
+    canvas {
+      touch-action: none;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      backface-visibility: hidden;
+      perspective: 1000;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap');
+    
+    :root {
+      --neon-blue: #00ffff;
+      --neon-green: #00ff66;
+      --neon-white: #ffffff;
+      --dark-bg: #0a0a12;
+      --darker-bg: #05050a;
+      --text-glow: 0 0 5px var(--neon-blue);
+      --box-glow: 0 0 15px var(--neon-green);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      background-color: var(--dark-bg);
+      color: white;
+      font-family: 'Rajdhani', sans-serif;
+      overflow: hidden;
+      touch-action: none;
+    }
+    
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+    }
+    
+    .back-button {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      padding: 10px 20px;
+      background: transparent;
+      border: 2px solid var(--neon-blue);
+      color: var(--neon-blue);
+      font-family: 'Share Tech Mono', monospace;
+      cursor: pointer;
+      z-index: 100;
+      text-shadow: var(--text-glow);
+      box-shadow: var(--box-glow);
+      transition: all 0.3s ease;
+    }
+    
+    .back-button:hover {
+      background: var(--neon-blue);
+      color: var(--darker-bg);
+    }
+  </style>
+</head>
+<body>
+  <div class="grid"></div>
+  <div class="scanline"></div>
+  
+  <a href="index.html" class="back-button">BACK</a>
+  
+  <div id="chrome-container"></div>
+  <canvas id="canvas"></canvas>
+  
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Set canvas size
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Chrome material properties
+    const chromeMaterial = {
+      ambient: 0.2,
+      diffuse: 0.8,
+      specular: 1.0,
+      shininess: 100,
+      reflectivity: 0.8
+    };
+    
+    // Shape parameters
+    const shape = {
+      vertices: [],
+      faces: [],
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: 1
+    };
+    
+    // Create a complex polyhedron
+    function createShape() {
+      // Create vertices for a complex polyhedron
+      const t = (1 + Math.sqrt(5)) / 2;
+      shape.vertices = [
+        [-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0],
+        [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t],
+        [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]
+      ];
+      
+      // Create faces
+      shape.faces = [
+        [0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11],
+        [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8],
+        [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
+        [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]
+      ];
+    }
+    
+    // Touch handling
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+    let isPinching = false;
+    let initialDistance = 0;
+    
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        lastTouchX = touchStartX;
+        lastTouchY = touchStartY;
+      } else if (e.touches.length === 2) {
+        isPinching = true;
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        initialDistance = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY
+        );
+      }
+    });
+    
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1 && !isPinching) {
+        const touchX = e.touches[0].clientX;
+        const touchY = e.touches[0].clientY;
+        
+        const deltaX = touchX - lastTouchX;
+        const deltaY = touchY - lastTouchY;
+        
+        shape.rotation.y += deltaX * 0.01;
+        shape.rotation.x += deltaY * 0.01;
+        
+        lastTouchX = touchX;
+        lastTouchY = touchY;
+      } else if (e.touches.length === 2 && isPinching) {
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const currentDistance = Math.hypot(
+          touch2.clientX - touch1.clientX,
+          touch2.clientY - touch1.clientY
+        );
+        
+        const scaleFactor = currentDistance / initialDistance;
+        shape.scale = Math.max(0.5, Math.min(2, shape.scale * scaleFactor));
+        initialDistance = currentDistance;
+      }
+    });
+    
+    canvas.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      isPinching = false;
+    });
+    
+    // Mouse handling
+    let isDragging = false;
+    let lastMouseX = 0;
+    let lastMouseY = 0;
+    
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const deltaX = e.clientX - lastMouseX;
+        const deltaY = e.clientY - lastMouseY;
+        
+        shape.rotation.y += deltaX * 0.01;
+        shape.rotation.x += deltaY * 0.01;
+        
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+      }
+    });
+    
+    canvas.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+    
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      shape.scale = Math.max(0.5, Math.min(2, shape.scale - e.deltaY * 0.001));
+    });
+    
+    // Project 3D point to 2D
+    function project(point) {
+      const scale = 100 * shape.scale;
+      const x = point[0] * Math.cos(shape.rotation.y) - point[2] * Math.sin(shape.rotation.y);
+      const z = point[0] * Math.sin(shape.rotation.y) + point[2] * Math.cos(shape.rotation.y);
+      const y = point[1] * Math.cos(shape.rotation.x) - z * Math.sin(shape.rotation.x);
+      const z2 = point[1] * Math.sin(shape.rotation.x) + z * Math.cos(shape.rotation.x);
+      
+      return {
+        x: x * scale + canvas.width / 2,
+        y: y * scale + canvas.height / 2,
+        z: z2
+      };
+    }
+    
+    // Calculate lighting
+    function calculateLighting(normal, light) {
+      const ambient = chromeMaterial.ambient;
+      const diffuse = Math.max(0, normal[0] * light[0] + normal[1] * light[1] + normal[2] * light[2]) * chromeMaterial.diffuse;
+      const specular = Math.pow(Math.max(0, normal[0] * light[0] + normal[1] * light[1] + normal[2] * light[2]), chromeMaterial.shininess) * chromeMaterial.specular;
+      const reflectivity = chromeMaterial.reflectivity;
+      
+      return ambient + diffuse + specular + reflectivity;
+    }
+    
+    // Draw the shape
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const light = [0, 1, 0];
+      const faces = shape.faces.map(face => {
+        const points = face.map(i => project(shape.vertices[i]));
+        const normal = [
+          (points[1].y - points[0].y) * (points[2].z - points[0].z) - (points[1].z - points[0].z) * (points[2].y - points[0].y),
+          (points[1].z - points[0].z) * (points[2].x - points[0].x) - (points[1].x - points[0].x) * (points[2].z - points[0].z),
+          (points[1].x - points[0].x) * (points[2].y - points[0].y) - (points[1].y - points[0].y) * (points[2].x - points[0].x)
+        ];
+        
+        const length = Math.sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+        normal[0] /= length;
+        normal[1] /= length;
+        normal[2] /= length;
+        
+        const lighting = calculateLighting(normal, light);
+        const brightness = Math.min(1, lighting);
+        
+        return {
+          points,
+          brightness,
+          z: (points[0].z + points[1].z + points[2].z) / 3
+        };
+      });
+      
+      faces.sort((a, b) => b.z - a.z);
+      
+      faces.forEach(face => {
+        ctx.beginPath();
+        ctx.moveTo(face.points[0].x, face.points[0].y);
+        ctx.lineTo(face.points[1].x, face.points[1].y);
+        ctx.lineTo(face.points[2].x, face.points[2].y);
+        ctx.closePath();
+        
+        const gradient = ctx.createLinearGradient(
+          face.points[0].x, face.points[0].y,
+          face.points[2].x, face.points[2].y
+        );
+        
+        const baseColor = `rgba(192, 192, 192, ${face.brightness})`;
+        const highlightColor = `rgba(255, 255, 255, ${face.brightness})`;
+        
+        gradient.addColorStop(0, baseColor);
+        gradient.addColorStop(0.5, highlightColor);
+        gradient.addColorStop(1, baseColor);
+        
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        
+        ctx.strokeStyle = `rgba(255, 255, 255, ${face.brightness * 0.5})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      });
+      
+      requestAnimationFrame(draw);
+    }
+    
+    // Initialize
+    createShape();
+    draw();
+  </script>
+</body>
+</html> 
